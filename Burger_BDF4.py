@@ -88,7 +88,7 @@ wp = dx*np.ones((N,1))
 wr = np.full(ns,1/ns).reshape(1,-1)
 
 u = np.zeros((4,N,ns))
-u[0] = np.load("Data/Burger/Burger_IC.npy")
+u[0] = np.load("Data/Burger_IC.npy")
 
 l_time,l_S_FOM,l_S_TDB,l_Err,l_r,l_V_TDB,basis = [[] for _ in range(7)]
 
