@@ -6,7 +6,6 @@ from scipy.sparse import diags
 from scipy.sparse.linalg import gmres
 from tqdm import trange
 import matplotlib.pyplot as plt
-plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
 dt = 0.01; T = 1 # Time step and final time
 
