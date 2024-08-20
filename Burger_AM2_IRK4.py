@@ -6,7 +6,6 @@ from scipy.sparse import diags
 from scipy.sparse.linalg import gmres
 from tqdm import trange
 import matplotlib.pyplot as plt
-plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
 Method = 'IRK4' # Choose between 'AM2' and 'IRK4'
 
