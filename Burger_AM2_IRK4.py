@@ -1,4 +1,3 @@
-#%%
 import numpy as np
 import scipy as sp
 from scipy import linalg as la
@@ -172,13 +171,11 @@ def Solve_TDB_r_AM2(u_Ir, u_Ire, Ir, Ire, q, U, pinv_UIr, u):
     c = u + 0.5*dt*RHS_FOM(u)
 
     i = 0
-    res = []
     while (la.norm(du_Ir)/len(Ir))>eps and (i<6):
         i += 1
 
         R_Ir = const - u_Ir + 0.5*dt*RHS_TDB_r(u_Ir, u_Ire, Ir, Ire)
-        res += [c - u + 0.5*dt*RHS_FOM(u)]
-
+        
         A_p_Ir_minus_1 = 0.5*dt*(-u_Ir/(2*dx)        - D2[Ir,Ir-1]).reshape(-1,1)
         A_p_Ir         = 0.5*dt*(D1[Ir][:,Ire]@u_Ire - D2[Ir,Ir  ]).reshape(-1,1) + 1
         A_p_Ir_plus_1  = 0.5*dt*( u_Ir/(2*dx)        - D2[Ir,Ir+1]).reshape(-1,1)
@@ -205,8 +202,6 @@ def Solve_TDB_r_IRK4(u_Ir, u_Ire, Ir, Ire, q, U, pinv_UIr, u):
         return Ar
 
     c_Ire = U[Ire] @ pinv_UIr
-
-    res = []
     
     k1_Ir, dk1_Ir, i = RHS_TDB_r(u_Ir, u_Ire, Ir, Ire), 1, 0; k1_Ire = c_Ire @ k1_Ir
     k1 = U @ pinv_UIr @ k1_Ir
@@ -215,7 +210,6 @@ def Solve_TDB_r_IRK4(u_Ir, u_Ire, Ir, Ire, q, U, pinv_UIr, u):
         u1_Ir   = u_Ir  + (1/4)*dt*k1_Ir
         u1_Ire  = u_Ire + (1/4)*dt*k1_Ire
         u1 = u + (1/4)*dt*k1
-        res += [RHS_FOM(u1)-k1]
         z = la.lstsq(Ap_TDB_r(u1_Ir, u1_Ire, Ir, Ire, q, U, pinv_UIr), RHS_TDB_r(u1_Ir, u1_Ire, Ir, Ire)-k1_Ir)[0]
         dk1_Ir  = U[Ir] @ z
         k1_Ir  += dk1_Ir
@@ -293,20 +287,20 @@ def Solve_TDB(U, S, Y, r):
 
     if Method=='IRK4': bfc = np.hstack([U*S@Y.T[:,Ic], K1_Ic, K2_Ic, K3_Ic, K4_Ic, K5_Ic])
     else:              bfc = np.hstack((U*S@Y.T[:,Ic], V_Ic))
-    U_F, S_F, Y_F = SVD(bfc, wp=wp)
-    U_F, S_F, Y_F, r_F = Trunc(U_F, S_F, Y_F)
+    U_delta, S_delta, Y_delta = SVD(bfc, wp=wp)
+    U_delta, S_delta, Y_delta, r_delta = Trunc(U_delta, S_delta, Y_delta)
 
-    Ir = GPODE(U_F, r_F+p); Ir = np.sort(Ir)
+    Ir = GPODE(U_delta, r_delta+p); Ir = np.sort(Ir)
     q = np.setdiff1d(np.arange(N), Ir)
     Ire = np.unique(np.nonzero(D2[Ir])[1])
 
     V_Ir  = U[Ir ] * S @ Y.T
     V_Ire = U[Ire] * S @ Y.T
 
-    pinv_UIr = la.pinv(U_F[Ir])
+    pinv_UIr = la.pinv(U_delta[Ir])
 
     for i in range(ns): 
-        V_Ir[:,i] = Solve_TDB_r(V_Ir[:,i], V_Ire[:,i], Ir, Ire, q, U_F, pinv_UIr, U*S@Y.T[:,i])
+        V_Ir[:,i] = Solve_TDB_r(V_Ir[:,i], V_Ire[:,i], Ir, Ire, q, U_delta, pinv_UIr, U*S@Y.T[:,i])
     
     U = SVD(V_Ic, wp=wp)[0]
     R, S, Y = SVD(la.lstsq(U[Ir], V_Ir)[0], wr=wr)
