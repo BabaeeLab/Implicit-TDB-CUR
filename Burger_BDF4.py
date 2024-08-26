@@ -1,4 +1,3 @@
-#%%
 import numpy as np
 import scipy as sp
 from scipy import linalg as la
@@ -174,12 +173,10 @@ def Solve_TDB_r(u_Ir, u_Ire, Ir, Ire, q, U, pinv_UIr, u):
     c = (48*u[3] - 36*u[2] + 16*u[1] - 3*u[0])/25
 
     i = 0
-    res = []
     while (la.norm(du_k_Ir)/len(Ir))>eps and (i<6):
         i += 1
 
         R_Ir = const - u_k_Ir + dt*(12/25)*RHS_TDB_r(u_k_Ir, u_k_Ire, Ir, Ire)
-        res += [c - u_k + dt*(12/25)*RHS_FOM(u_k)]
 
         A_p_Ir_minus_1 = (12/25)*dt*(-u_k_Ir/(2*dx)        - D2[Ir,Ir-1]).reshape(-1,1)
         A_p_Ir         = (12/25)*dt*(D1[Ir][:,Ire]@u_k_Ire - D2[Ir,Ir  ]).reshape(-1,1) + 1
@@ -196,7 +193,7 @@ def Solve_TDB_r(u_Ir, u_Ire, Ir, Ire, q, U, pinv_UIr, u):
     u_Ir[:-1]  =  u_Ir[1:].copy();  u_Ir[-1] =  u_k_Ir.ravel()    
     u_Ire[:-1] = u_Ire[1:].copy(); u_Ire[-1] = u_k_Ire.ravel()
 
-    return u_Ir, u_Ire, res
+    return u_Ir, u_Ire
 
 def Solve_TDB(U, S, Y, r, basis):
 
@@ -210,21 +207,21 @@ def Solve_TDB(U, S, Y, r, basis):
 
     for i in range(len(Ic)): V_Ic[:,:,i] = Solve_FOM_BDF4(V_Ic[:,:,i])
     
-    U_F, S_F, Y_F = SVD(np.hstack((V_Ic[-1], V_Ic[-2])), wp=wp)
-    U_F, S_F, Y_F, r_F = Trunc(U_F, S_F, Y_F)
+    U_delta, S_delta, Y_delta = SVD(np.hstack((V_Ic[-1], V_Ic[-2])), wp=wp)
+    U_delta, S_delta, Y_delta, r_delta = Trunc(U_delta, S_delta, Y_delta)
 
-    Ir = GPODE(U_F, r_F+p); Ir = np.sort(Ir)
+    Ir = GPODE(U_delta, r_delta+p); Ir = np.sort(Ir)
     q = np.setdiff1d(np.arange(N), Ir)
     Ire = np.unique(np.nonzero(D2[Ir,:])[1])
 
     V_Ir  = np.array([basis[i][0][Ir]  @ basis[i][1] for i in range(4)])
     V_Ire = np.array([basis[i][0][Ire] @ basis[i][1] for i in range(4)])
 
-    pinv_U_Ic = la.pinv(U_F[Ir])
+    pinv_U_Ic = la.pinv(U_delta[Ir])
     
     V = np.array([basis[i][0]  @ basis[i][1] for i in range(4)])
 
-    for i in range(ns): V_Ir[:,:,i], V_Ire[:,:,i], res_ = Solve_TDB_r(V_Ir[:,:,i], V_Ire[:,:,i], Ir, Ire, q, U_F, pinv_U_Ic, V[:,:,i])
+    for i in range(ns): V_Ir[:,:,i], V_Ire[:,:,i] = Solve_TDB_r(V_Ir[:,:,i], V_Ire[:,:,i], Ir, Ire, q, U_delta, pinv_U_Ic, V[:,:,i])
     
     U = SVD(V_Ic[-1], wp=wp)[0]
     R, S, Y = SVD(la.lstsq(U[Ir,:], V_Ir[-1])[0], wr=wr)
